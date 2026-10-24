@@ -37,7 +37,8 @@ def prepare_updates(results, sheet, columns, price_column):
         identity = normalize_item(identity)
         if identity != {key: result[key] for key in columns}:
             raise ValueError(f'Ligne {row} modifiée depuis la collecte ; écriture annulée')
-        updates.append({'range': f'{target}{row}', 'values': [[parse_integer(result['price'])]]})
+        value = '' if result.get('status') == 'no_offer' else parse_integer(result['price'])
+        updates.append({'range': f'{target}{row}', 'values': [[value]]})
     if not updates:
         raise ValueError('Aucun prix à écrire')
     return updates
@@ -47,6 +48,9 @@ def prepare_updates(results, sheet, columns, price_column):
 def prepare_comparison_updates(results, sheet, columns, phase,
                                black_column='prix_black_market',
                                market_column='prix_marche', profit_column='profit_brut'):
+    results = [r for r in results if r.get('status', 'ok') in {'ok', 'no_offer'}]
+    if not results:
+        return []
     if phase not in {'black', 'market'}:
         raise ValueError('Passage attendu : black ou market')
     names = [black_column, market_column, profit_column]
@@ -66,7 +70,7 @@ def prepare_comparison_updates(results, sheet, columns, phase,
         cells = sheet[row - 1]
         previous = str(cells[other_index]).strip() if other_index < len(cells) else ''
         profit = ''
-        if previous:
+        if previous and result.get('status') != 'no_offer':
             # Les valeurs non numériques sont refusées avant toute écriture.
             other_price = parse_integer(previous)
             price = parse_integer(result['price'])

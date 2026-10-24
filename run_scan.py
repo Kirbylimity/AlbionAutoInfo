@@ -26,7 +26,11 @@ def main():
     parser.add_argument('--dry-run', action='store_true', help='Lire et valider le tableau sans clic ni écriture')
     parser.add_argument('--limit', type=int, help='Limiter le test aux N premiers objets')
     parser.add_argument('--no-write', action='store_true', help='Collecter sans modifier Google Sheets')
+    parser.add_argument('--import-results', help='Importer un CSV existant sans piloter le jeu')
+    parser.add_argument('--start-row', type=int, default=2, help='Reprendre depuis cette ligne Google Sheets incluse')
     args = parser.parse_args()
+    if args.start_row < 2:
+        parser.error('--start-row doit être >= 2')
     if args.limit is not None and args.limit < 1:
         parser.error('--limit doit être positif')
     import gspread
@@ -35,6 +39,7 @@ def main():
     config = json.loads(Path(args.config).read_text(encoding='utf-8'))
     snapshot = worksheet.get_all_values()
     items = sheet_items(snapshot, config['columns'])
+    items = [item for item in items if item['sheet_row'] >= args.start_row]
     if args.limit is not None:
         items = items[:args.limit]
     if not items:
@@ -45,19 +50,31 @@ def main():
     if args.dry_run:
         print(json.dumps(items, ensure_ascii=False, indent=2))
         return
-    validate(config, items)
-    # Le joueur prépare le tri : lire la première offre, quel que soit le marché.
-    collect(config, items, args.output, 'first')
-    with (Path(args.output) / 'results.csv').open(encoding='utf-8-sig', newline='') as handle:
-        results = list(csv.DictReader(handle))
-    if args.no_write:
-        print(f'Résultats locaux : {args.output}/results.csv ; aucune écriture Google Sheets.')
+    def persist(results):
+        if args.no_write:
+            return
+        current = worksheet.get_all_values()
+        updates = prepare_comparison_updates(results, current, config['columns'], args.phase)
+        if updates:
+            worksheet.batch_update(updates, value_input_option='RAW')
+            print(f'{len(results)} résultat(s) traité(s), Google Sheets mis à jour.')
+
+    if args.import_results:
+        with Path(args.import_results).open(encoding='utf-8-sig', newline='') as handle:
+            results = list(csv.DictReader(handle))
+        # Une erreur de ligne bloque le lot entier avant toute écriture.
+        updates = prepare_comparison_updates(results, snapshot, config['columns'], args.phase)
+        if args.no_write:
+            print(json.dumps(updates, ensure_ascii=False, indent=2))
+        else:
+            persist(results)
         return
-    # Relecture pour éviter d'écrire dans une ligne déplacée pendant la collecte.
-    current = worksheet.get_all_values()
-    updates = prepare_comparison_updates(results, current, config['columns'], args.phase)
-    worksheet.batch_update(updates, value_input_option='RAW')
-    print(f'{len(results)} prix enregistrés (passage {args.phase}). Profit brut actualisé si les deux prix sont présents.')
+    validate(config, items)
+    collect(config, items, args.output, 'first',
+            on_result=None if args.no_write else lambda result: persist([result]))
+    print(f'Terminé. Résultats locaux : {args.output}/results.csv')
+    if args.no_write:
+        print('Aucune écriture Google Sheets.')
 
 
 if __name__ == '__main__':

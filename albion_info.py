@@ -90,6 +90,20 @@ def read_offers(screenshot, rows, ocr):
     return totals, quantities
 
 
+def read_market_result(screenshot, config, ocr, market):
+    region = config.get('no_offers_region')
+    if region:
+        x, y, width, height = region
+        crop = screenshot.crop((x, y, x + width, y + height))
+        message = ocr(crop.resize((width * 3, height * 3)), config='--psm 7')
+        if re.sub(r'[^a-z]', '', message.casefold()) == 'nooffersfound':
+            return {'status': 'no_offer', 'price': '', 'visible_quantity': '', 'error': ''}
+    totals, quantities = read_offers(screenshot, config['rows'], ocr)
+    price = select_price(totals, market)
+    return {'status': 'ok', 'price': price,
+            'visible_quantity': totals[price] if quantities else '', 'error': ''}
+
+
 def validate(config, items):
     if set(config['columns']) != {'name', 'tier', 'enchantment', 'quality'}:
         raise ValueError('Configurer name, tier, enchantment, quality')
@@ -103,7 +117,7 @@ def validate(config, items):
         raise ValueError('wait_seconds doit être >= 1')
 
 
-def collect(config, items, output, market):
+def collect(config, items, output, market, on_result=None):
     import pyautogui as gui
     import pyperclip
     import pytesseract
@@ -120,7 +134,7 @@ def collect(config, items, output, market):
     gui.hotkey('alt', 'tab')
     time.sleep(2)
     with (destination / 'results.csv').open('w', newline='', encoding='utf-8-sig') as handle:
-        writer = csv.DictWriter(handle, fieldnames=['sheet_row', 'name', 'tier', 'enchantment', 'quality', 'market', 'price', 'visible_quantity', 'captured_at'])
+        writer = csv.DictWriter(handle, fieldnames=['sheet_row', 'name', 'tier', 'enchantment', 'quality', 'market', 'price', 'visible_quantity', 'captured_at', 'status', 'error'])
         writer.writeheader()
         for index, item in enumerate(items):
             gui.click(*config['search'])
@@ -138,15 +152,25 @@ def collect(config, items, output, market):
                 time.sleep(config.get('wait_seconds', 2))
             screenshot = gui.screenshot()
             screenshot.save(destination / f'{index:04d}.png')
-            try:
-                totals, quantities = read_offers(screenshot, config['rows'], pytesseract.image_to_string)
-            except ValueError as error:
-                raise ValueError(f"Lecture arrêtée pour {item['name']}. Vérifier {index:04d}.png : {error}") from error
-            price = select_price(totals, market)
-            writer.writerow({**item, 'market': market, 'price': price,
-                             'visible_quantity': totals[price] if quantities else '',
-                             'captured_at': time.strftime('%Y-%m-%dT%H:%M:%S%z')})
+            for attempt in range(2):
+                try:
+                    outcome = read_market_result(screenshot, config, pytesseract.image_to_string, market)
+                    break
+                except ValueError as error:
+                    if attempt == 0:
+                        time.sleep(config.get('wait_seconds', 2))
+                        screenshot = gui.screenshot()
+                        screenshot.save(destination / f'{index:04d}.png')
+                    else:
+                        outcome = {'status': 'ocr_error', 'price': '',
+                                   'visible_quantity': '', 'error': str(error)}
+            result = {**item, 'market': market, **outcome,
+                      'captured_at': time.strftime('%Y-%m-%dT%H:%M:%S%z')}
+            writer.writerow(result)
             handle.flush()
+            print(f"Ligne {item['sheet_row']} — {item['name']} : {outcome['status']} {outcome['price']}")
+            if on_result is not None:
+                on_result(result)
             if config.get('back_click'):
                 gui.click(*config['back_click'])
                 time.sleep(1)

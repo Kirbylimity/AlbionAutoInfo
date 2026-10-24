@@ -120,5 +120,11 @@
       ]
     }
   ],
-  "tesseract_cmd": "C:/Program Files/Tesseract-OCR/tesseract.exe"
+  "tesseract_cmd": "C:/Program Files/Tesseract-OCR/tesseract.exe",
+  "no_offers_region": [
+    855,
+    455,
+    190,
+    40
+  ]
 }

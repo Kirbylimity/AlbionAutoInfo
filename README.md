@@ -102,7 +102,7 @@ Après cinq secondes, le programme fait Alt+Tab une seule fois : Albion doit êt
 
 Chaque exécution crée un dossier `captures-*` avec `results.csv` et une capture PNG par objet. Les quantités des lignes **visibles et calibrées** au même prix sont additionnées. Ce n'est pas le stock total du marché : pagination et défilement ne sont pas implémentés. Vérifier que le premier résultat est le bon objet ; les noms ambigus peuvent sélectionner un autre objet.
 
-L'OCR peut se tromper même si les nombres semblent valides. Comparer les premières captures avec le CSV avant d'utiliser les résultats. Une cellule vide ou un nombre ambigu arrête la collecte et conserve les résultats précédents. Le presse-papiers est utilisé pour saisir les noms. Le focus et les filtres ne sont pas vérifiés automatiquement : effectuer le premier essai sur un seul objet. Le fonctionnement réel dans Albion reste à valider localement.
+L'OCR peut se tromper même si les nombres semblent valides. Comparer les premières captures avec le CSV avant d'utiliser les résultats. Une lecture ambiguë est retentée une fois puis signalée ocr_error dans le CSV ; le scan continue sans remplacer les valeurs Google de cette ligne. Le presse-papiers est utilisé pour saisir les noms. Le focus et les filtres ne sont pas vérifiés automatiquement : effectuer le premier essai sur un seul objet. Le fonctionnement réel dans Albion reste à valider localement.
 
 ## Développement cloud
 
@@ -162,3 +162,20 @@ Pour tester un seul objet sans modifier le tableau, reprendre votre commande hab
 Ne pas utiliser `--dry-run` pour cet essai : il faut réellement tester les clics et l'OCR. Ouvrir le Black Market, choisir Price - Highest, revenir au terminal avec Albion comme fenêtre précédente et lancer. Le script attend cinq secondes puis fait Alt+Tab. Examiner ensuite le fichier results.csv et la capture 0000.png dans le dossier captures-* indiqué. Le premier essai doit être comparé visuellement avant d'enlever --no-write. Si aucune offre n'est disponible, la lecture s'arrête : aucun prix n'est inventé. Le programme ne vérifie pas automatiquement le nom affiché ou le tri.
 
 Les options `--limit 1` et `--no-write` peuvent également servir aux autres configurations. Ne pas réutiliser les coordonnées du Black Market sur un marché de disposition différente sans calibration.
+
+
+## Absence d'offre, sauvegarde progressive et reprise
+
+Le profil Black Market inclut `no_offers_region`, rectangle du message anglais `No offers found.`. Si ce texte est reconnu, le résultat porte le statut `no_offer` : le prix du marché scanné et son profit sont vidés (jamais remplacés par zéro), et le scan continue. Si le message ne peut pas être reconnu ou si le nombre est ambigu, le programme refait une capture après le délai puis signale `ocr_error` si la lecture échoue encore. Cette erreur ne prouve pas une absence d'offre et ne modifie aucune cellule de cette ligne ; une ancienne valeur peut donc subsister. Consulter impérativement les statuts du CSV à la fin du scan. Calibrer aussi le message d'absence d'offre pour tout autre profil ; sans ce rectangle, les offres manquantes seront signalées comme erreurs OCR.
+
+Chaque résultat est enregistré dans results.csv avant le rappel d'écriture Google Sheets. Les succès et absences reconnues sont envoyés ligne par ligne, après vérification de l'identité dans le tableau. Une erreur réseau, une modification des lignes ou un arrêt manuel peut toujours interrompre le scan ; les écritures précédentes et le CSV restent conservés. Les appels restent synchrones : ne pas réutiliser Alt+Tab pendant le scan.
+
+Pour importer les résultats d'un ancien scan arrêté (sans manipuler le jeu), reprendre les arguments habituels de run_scan.py et ajouter :
+
+```text
+--import-results captures-ANCIEN-DOSSIER/results.csv
+```
+
+Les anciens CSV sans statut restent acceptés comme relevés réussis. L'import relit et vérifie toutes les lignes avant l'écriture ; ne pas réordonner les objets. Utiliser --phase black pour un ancien relevé Black Market ou --phase market pour un relevé du marché classique. Les prix importés restent des prix historiques, pas des cours actuels. Avec --no-write, l'import affiche seulement les cellules proposées.
+
+Pour reprendre ensuite la collecte à une ligne Google Sheets donnée, ajouter par exemple `--start-row 190` (ligne incluse). Les numéros sont ceux du tableau avec la ligne d'en-têtes comptée, pas les indices des images. Pour l'erreur de Cleric Cowl sur l'image 0188.png d'un scan complet commençant ligne 2, la reprise est à la ligne 190. Les nouveaux dossiers de capture conservent leurs propres indices d'images ; sheet_row dans le CSV fait référence à la feuille.
