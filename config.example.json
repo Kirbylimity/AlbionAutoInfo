@@ -1,0 +1,114 @@
+{
+  "columns": {
+    "name": "nom",
+    "tier": "tier",
+    "enchantment": "enchantement",
+    "quality": "qualité"
+  },
+  "search": [
+    0,
+    0
+  ],
+  "wait_seconds": 3,
+  "filters": {
+    "tier": {
+      "open": [
+        0,
+        0
+      ],
+      "options": {
+        "1": [
+          0,
+          0
+        ],
+        "2": [
+          0,
+          0
+        ],
+        "3": [
+          0,
+          0
+        ],
+        "4": [
+          0,
+          0
+        ],
+        "5": [
+          0,
+          0
+        ],
+        "6": [
+          0,
+          0
+        ],
+        "7": [
+          0,
+          0
+        ],
+        "8": [
+          0,
+          0
+        ]
+      }
+    },
+    "enchantment": {
+      "open": [
+        0,
+        0
+      ],
+      "options": {
+        "0": [
+          0,
+          0
+        ],
+        "1": [
+          0,
+          0
+        ],
+        "2": [
+          0,
+          0
+        ],
+        "3": [
+          0,
+          0
+        ],
+        "4": [
+          0,
+          0
+        ]
+      }
+    },
+    "quality": {
+      "open": [
+        0,
+        0
+      ],
+      "options": {
+        "Normal": [
+          0,
+          0
+        ],
+        "Good": [
+          0,
+          0
+        ],
+        "Outstanding": [
+          0,
+          0
+        ],
+        "Excellent": [
+          0,
+          0
+        ],
+        "Masterpiece": [
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "results_click": null,
+  "back_click": null,
+  "rows": []
+}

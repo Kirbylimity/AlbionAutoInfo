@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+config.json
+captures-*/
+*credentials*.json
+*service-account*.json

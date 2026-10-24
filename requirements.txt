@@ -1,0 +1,4 @@
+PyAutoGUI==0.9.54
+pyperclip==1.11.0
+pytesseract==0.3.13
+Pillow==11.3.0
