@@ -148,3 +148,17 @@ Après avoir vérifié les captures et le CSV, préparer la mise à jour :
 Cette commande affiche les cellules proposées sans les modifier. Relancer avec `--apply` pour inscrire les prix. Seule la cellule de prix de chaque ligne collectée est modifiée ; les autres colonnes sont conservées. L'outil relit les noms et paramètres du tableau et annule l'ensemble de l'écriture si une ligne ne correspond plus. Utiliser le même onglet et les mêmes intitulés de colonnes que pour la collecte. Ne pas modifier ni trier le tableau pendant l'écriture : la vérification et la mise à jour ne constituent pas une transaction atomique.
 
 L'accès Google réel et la collecte Windows doivent être validés avec votre tableau et votre jeu ; aucun identifiant ni écran de jeu n'est disponible dans cet environnement cloud. Le programme ne détecte pas automatiquement le marché ou la fenêtre active.
+
+## Configuration Black Market issue des captures 1920 × 1080
+
+`config.black-market.1920x1080.json` fournit des positions estimées depuis les captures de l'utilisateur : recherche, tiers, enchantements, qualités et rectangle du premier prix. Ces positions restent à vérifier sur le PC ; conserver la même résolution, échelle et fenêtre. Le rectangle doit contenir uniquement le nombre, sans icône d'argent. Aucun clic sur Sell Now n'est configuré. La quantité est facultative : sans rectangle `quantity`, elle reste vide dans le CSV.
+
+Pour tester un seul objet sans modifier le tableau, reprendre votre commande habituelle `run_scan.py` et ajouter :
+
+```text
+--config config.black-market.1920x1080.json --limit 1 --no-write
+```
+
+Ne pas utiliser `--dry-run` pour cet essai : il faut réellement tester les clics et l'OCR. Ouvrir le Black Market, choisir Price - Highest, revenir au terminal avec Albion comme fenêtre précédente et lancer. Le script attend cinq secondes puis fait Alt+Tab. Examiner ensuite le fichier results.csv et la capture 0000.png dans le dossier captures-* indiqué. Le premier essai doit être comparé visuellement avant d'enlever --no-write. Si aucune offre n'est disponible, la lecture s'arrête : aucun prix n'est inventé. Le programme ne vérifie pas automatiquement le nom affiché ou le tri.
+
+Les options `--limit 1` et `--no-write` peuvent également servir aux autres configurations. Ne pas réutiliser les coordonnées du Black Market sur un marché de disposition différente sans calibration.

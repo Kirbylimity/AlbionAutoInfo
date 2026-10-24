@@ -102,3 +102,23 @@ class ComparisonTests(unittest.TestCase):
         items = sheet_items([self.headers, ['', '', '', '', '100', '80', '20'],
                              ['Sac','4','0','Normal']], COLUMNS)
         self.assertEqual(items[0]['sheet_row'], 3)
+
+class OfferReadingTests(unittest.TestCase):
+    def test_price_only_keeps_quantity_unknown(self):
+        from albion_info import read_offers
+        from PIL import Image
+        totals, known = read_offers(Image.new('RGB', (200, 50)),
+                                   [{'price': [0, 0, 100, 25]}],
+                                   lambda *args, **kwargs: '58,046,710')
+        self.assertEqual(list(totals), [58046710])
+        self.assertFalse(known)
+
+    def test_explicit_quantities_are_aggregated(self):
+        from albion_info import read_offers
+        from PIL import Image
+        from unittest.mock import Mock
+        rows = [{'price': [0,0,50,20], 'quantity': [50,0,50,20]}] * 2
+        totals, known = read_offers(Image.new('RGB', (100,50)), rows,
+                                   Mock(side_effect=['100', '2', '100', '3']))
+        self.assertEqual(totals[100], 5)
+        self.assertTrue(known)

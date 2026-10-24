@@ -1,0 +1,124 @@
+{
+  "columns": {
+    "name": "nom",
+    "tier": "tier",
+    "enchantment": "enchantement",
+    "quality": "qualité"
+  },
+  "search": [
+    640,
+    270
+  ],
+  "wait_seconds": 3,
+  "filters": {
+    "tier": {
+      "open": [
+        960,
+        270
+      ],
+      "options": {
+        "1": [
+          930,
+          325
+        ],
+        "2": [
+          930,
+          352
+        ],
+        "3": [
+          930,
+          379
+        ],
+        "4": [
+          930,
+          406
+        ],
+        "5": [
+          930,
+          433
+        ],
+        "6": [
+          930,
+          460
+        ],
+        "7": [
+          930,
+          487
+        ],
+        "8": [
+          930,
+          514
+        ]
+      }
+    },
+    "enchantment": {
+      "open": [
+        1100,
+        270
+      ],
+      "options": {
+        "0": [
+          1100,
+          325
+        ],
+        "1": [
+          1100,
+          352
+        ],
+        "2": [
+          1100,
+          379
+        ],
+        "3": [
+          1100,
+          406
+        ],
+        "4": [
+          1100,
+          433
+        ]
+      }
+    },
+    "quality": {
+      "open": [
+        1250,
+        270
+      ],
+      "options": {
+        "Normal": [
+          1240,
+          325
+        ],
+        "Good": [
+          1240,
+          352
+        ],
+        "Outstanding": [
+          1240,
+          379
+        ],
+        "Excellent": [
+          1240,
+          406
+        ],
+        "Masterpiece": [
+          1240,
+          433
+        ]
+      }
+    }
+  },
+  "results_click": null,
+  "back_click": null,
+  "rows": [
+    {
+      "price": [
+        1012,
+        417,
+        130,
+        27
+      ]
+    }
+  ],
+  "tesseract_cmd": "C:/Program Files/Tesseract-OCR/tesseract.exe"
+}

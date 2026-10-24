@@ -75,6 +75,21 @@ def parse_integer(text):
     return value
 
 
+def read_offers(screenshot, rows, ocr):
+    totals = Counter()
+    quantities = all(row.get('quantity') is not None for row in rows)
+    for row in rows:
+        values = {}
+        for field in ('price', 'quantity') if quantities else ('price',):
+            x, y, width, height = row[field]
+            crop = screenshot.crop((x, y, x + width, y + height))
+            text = ocr(crop.resize((width * 3, height * 3)), config='--psm 7')
+            values[field] = parse_integer(text)
+        # Une quantité inconnue reste vide dans le CSV, jamais inventée.
+        totals[values['price']] += values.get('quantity', 0)
+    return totals, quantities
+
+
 def validate(config, items):
     if set(config['columns']) != {'name', 'tier', 'enchantment', 'quality'}:
         raise ValueError('Configurer name, tier, enchantment, quality')
@@ -123,20 +138,14 @@ def collect(config, items, output, market):
                 time.sleep(config.get('wait_seconds', 2))
             screenshot = gui.screenshot()
             screenshot.save(destination / f'{index:04d}.png')
-            totals = Counter()
             try:
-                for row in config['rows']:
-                    values = []
-                    for field in ('price', 'quantity'):
-                        x, y, width, height = row[field]
-                        crop = screenshot.crop((x, y, x + width, y + height))
-                        text = pytesseract.image_to_string(crop.resize((width * 3, height * 3)), config='--psm 7')
-                        values.append(parse_integer(text))
-                    totals[values[0]] += values[1]
+                totals, quantities = read_offers(screenshot, config['rows'], pytesseract.image_to_string)
             except ValueError as error:
                 raise ValueError(f"Lecture arrêtée pour {item['name']}. Vérifier {index:04d}.png : {error}") from error
             price = select_price(totals, market)
-            writer.writerow({**item, 'market': market, 'price': price, 'visible_quantity': totals[price], 'captured_at': time.strftime('%Y-%m-%dT%H:%M:%S%z')})
+            writer.writerow({**item, 'market': market, 'price': price,
+                             'visible_quantity': totals[price] if quantities else '',
+                             'captured_at': time.strftime('%Y-%m-%dT%H:%M:%S%z')})
             handle.flush()
             if config.get('back_click'):
                 gui.click(*config['back_click'])

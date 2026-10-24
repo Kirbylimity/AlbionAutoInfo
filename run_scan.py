@@ -24,13 +24,19 @@ def main():
     parser.add_argument('--config', default='config.json')
     parser.add_argument('--output', default=time.strftime('captures-%Y%m%d-%H%M%S'))
     parser.add_argument('--dry-run', action='store_true', help='Lire et valider le tableau sans clic ni écriture')
+    parser.add_argument('--limit', type=int, help='Limiter le test aux N premiers objets')
+    parser.add_argument('--no-write', action='store_true', help='Collecter sans modifier Google Sheets')
     args = parser.parse_args()
+    if args.limit is not None and args.limit < 1:
+        parser.error('--limit doit être positif')
     import gspread
     client = gspread.service_account(filename=args.credentials)
     worksheet = client.open_by_key(args.spreadsheet_id).worksheet(args.worksheet)
     config = json.loads(Path(args.config).read_text(encoding='utf-8'))
     snapshot = worksheet.get_all_values()
     items = sheet_items(snapshot, config['columns'])
+    if args.limit is not None:
+        items = items[:args.limit]
     if not items:
         raise ValueError('Aucun objet dans le tableau')
     # Vérifier les colonnes avant de manipuler le jeu.
@@ -44,6 +50,9 @@ def main():
     collect(config, items, args.output, 'first')
     with (Path(args.output) / 'results.csv').open(encoding='utf-8-sig', newline='') as handle:
         results = list(csv.DictReader(handle))
+    if args.no_write:
+        print(f'Résultats locaux : {args.output}/results.csv ; aucune écriture Google Sheets.')
+        return
     # Relecture pour éviter d'écrire dans une ligne déplacée pendant la collecte.
     current = worksheet.get_all_values()
     updates = prepare_comparison_updates(results, current, config['columns'], args.phase)
